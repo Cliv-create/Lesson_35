@@ -493,6 +493,8 @@ int main()
 	}
 	bt4.ShowTree();
 	bt4.RebalanceTree();
-	cout << "AFTER REBALANCE\n";
+	cout << "AFTER FIRST REBALANCE\n";
+	bt4.RebalanceTree();
+	cout << "AFTER SECOND REBALANCE\n";
 	
 }
