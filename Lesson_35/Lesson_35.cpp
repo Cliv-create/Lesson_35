@@ -39,7 +39,9 @@ public:
 	~Tree()
 	{
 		Clear();
-		cout << "AFTER TREE DESTRUCTION\n";
+		#if defined(DEBUG_MODE)
+			cout << "AFTER TREE DESTRUCTION\n";
+		#endif
 	}
 
 private:
@@ -288,35 +290,51 @@ private:
 	
 
 	bool DegeneracyCheck(Node* root) const {
+		if (root == nullptr) {
+			cout << "The tree is empty.\n";
+			return false;
+		}
 
-		// while (true) if data->right = nullptr break;
-		// Then GetCount.
-		// DegeneracyCheck() method
-		// ---
-		// TreeRebalance() method
-		// Then run modified version of ShowTree, with each iteration adding a count to the vector.
-		// Mix up the vector.
-		// Add vectors element to the new tree one by one
-		// Run Clear() for root of the tree
-		// Set Tree* temp_root = root;
 		Node* current = root;
 		int right_elements_count = 0;
-		while (true) {
-			if (current != nullptr) {
-				current = current->right;
-				right_elements_count++;
-			}
-			else {
-				break;
-			}
+		int left_elements_count = 0;
+
+		// проверка правой ветви
+		while (current != nullptr) {
+			cout << "Current node value (right branch): " << current->value << "\n";
+			right_elements_count++;
+			current = current->right;
 		}
+
+		current = root;
+		// проверка левой ветви
+		while (current != nullptr) {
+			cout << "Current node value (left branch): " << current->value << "\n";
+			left_elements_count++;
+			current = current->left;
+		}
+
 		cout << "RIGHT ELEMENT COUNT COMPLETED\n";
-		cout << "Count: " << right_elements_count << "\n";
+		cout << "Count of right elements: " << right_elements_count << "\n";
+
+		cout << "LEFT ELEMENT COUNT COMPLETED\n";
+		cout << "Count of left elements: " << left_elements_count << "\n";
+
 		int tree_elements_count = GetCount();
-		if ((tree_elements_count / right_elements_count * 100) >= 45) {
-			return true;
+		if (tree_elements_count == 0) {
+			cout << "Total tree elements count is zero. Cannot determine degeneracy.\n";
+			return false;
 		}
-		else return false;
+
+		// сравниваем количество элементов в левой и правой ветвях
+		double right_ratio = ((double)(right_elements_count) / tree_elements_count) * 100;
+		double left_ratio = ((double)(left_elements_count) / tree_elements_count) * 100;
+
+		cout << "Right elements ratio: " << right_ratio << "%\n";
+		cout << "Left elements ratio: " << left_ratio << "%\n";
+
+		// проверка коэффициентов по обеим веткам
+		return (right_ratio >= 45 || left_ratio >= 45);
 	}
 
 	void CopyToVector(const Node* element, vector<int> &destination) {
@@ -333,18 +351,43 @@ private:
 			CopyToVector(element->right, destination);
 	}
 
+	// собираем все значения из дерева в вектор (in-order обход)
+	void InOrderTraversal(Node* element, vector<int>& values) {
+		if (element == nullptr) return;
+
+		InOrderTraversal(element->left, values);
+		values.push_back(element->value);
+		InOrderTraversal(element->right, values);
+	}
+
+	// построение сбалансированного дерева из отсортированного массива
+	Node* BuildBalancedTree(vector<int>& values, int start, int end) {
+		if (start > end) return nullptr;
+
+		int mid = (start + end) / 2;
+		Node* newNode = new Node();
+		newNode->value = values[mid];
+
+		newNode->left = BuildBalancedTree(values, start, mid - 1);
+		if (newNode->left) newNode->left->parent = newNode;
+
+		newNode->right = BuildBalancedTree(values, mid + 1, end);
+		if (newNode->right) newNode->right->parent = newNode;
+
+		return newNode;
+	}
+
 public:
-	int RebalanceTree() {
+	int RebalanceTreeRandomVector() {
 		// elements_count - setting vector's starting capacity value
 
 		// Return 0: Everything is fine
 		// Return 1: Tree was successfully rebalanced
 		// Return -1: Error has occured (throw will be used)
 		// If Tree is not degenerated, then return 0;
-		if (DegeneracyCheck(this->root) == false) {
-			return 0;
-		}
-		// If it is, continue with code
+		if (IsEmpty()) return 0;
+		if (DegeneracyCheck(this->root) == false) return 0;
+		
 		#if defined(DEBUG_MODE)
 			cout << "AFTER CHECK\n";
 		#endif
@@ -363,23 +406,10 @@ public:
 			cout << "AFTER COPYTOVECTOR\n";
 		#endif
 		
-
-		// TEMP
-		this->ShowTree();
-
 		random_device rd;
 		mt19937 g(rd());
 
 		shuffle(temp.begin(), temp.end(), g); // Shuffling vector
-
-		// TEMP
-		#if defined(DEBUG_MODE)
-			copy(temp.begin(), temp.end(), std::ostream_iterator<int>(std::cout, " "));
-		cout << "\n";
-		#endif
-		
-		
-		// Tree temp_tree(*this);
 
 		Tree temp_tree;
 
@@ -387,7 +417,6 @@ public:
 			cout << "AFTER TEMPTREE CREATION\n";
 		#endif
 		
-
 		for (unsigned int i = 0; i < original_elements_count; i++)
 		{
 			temp_tree.AddNode(temp[i]);
@@ -397,23 +426,31 @@ public:
 			cout << "AFTER ADDED SHUFFLE\n";
 		#endif
 		
-
 		this->Clear();
 
 		#if defined(DEBUG_MODE)
 			cout << "AFTER CLEAR METHOD\n";
 		#endif
 		
-
 		this->root = temp_tree.GetRoot();
 
 		#if defined(DEBUG_MODE)
 			cout << "AFTER NEW ROOT IS SET\n";
 		#endif
-		
 
 		return 1;
 	}
+
+	int RebalanceTree() {
+		if (IsEmpty()) return 0;
+
+		vector<int> values;
+		InOrderTraversal(root, values);
+		Clear();
+		root = BuildBalancedTree(values, 0, values.size() - 1);
+		return 1;
+	}
+
 };
 
 int main()
